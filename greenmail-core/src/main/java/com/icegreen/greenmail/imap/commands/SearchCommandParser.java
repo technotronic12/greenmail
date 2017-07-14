@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.mail.search.AndTerm;
+import javax.mail.search.OrTerm;
 import javax.mail.search.SearchTerm;
 import javax.mail.search.SubjectTerm;
 import java.nio.charset.CharacterCodingException;
@@ -34,21 +35,24 @@ class SearchCommandParser extends CommandParser {
      * Other searches will return everything for now.
      */
     public SearchTerm searchTerm(ImapRequestLineReader request) throws ProtocolException, CharacterCodingException {
-        SearchTerm resultTerm = null;
+        SearchTerm resultTerm;
         Stack<String> valuesStack = new Stack<>();
 
         String searchRequestString = getFullSearchRequest(request);
         searchRequestString = removeQuotesAndSpace(searchRequestString);
-        ArrayList<String> searchTerms = stringToTermsList(searchRequestString);
-        ArrayList<SearchTerm> fullSearch = new ArrayList<>();
+        ArrayList<String> searchWords = stringToTermsList(searchRequestString);
+        ArrayList<SearchTerm> multipleSearchTerms = new ArrayList<>();
 
-        for (String item : searchTerms) {
+        for (String item : searchWords) {
             try {
                 SearchKey key = SearchKey.valueOf(item);
 
                 if (key == SearchKey.SUBJECT) {
                     resultTerm = new SubjectTerm(valuesStack.pop());
-                    fullSearch.add(resultTerm);
+                    multipleSearchTerms.add(resultTerm);
+                } else if (key == SearchKey.OR) {
+                    resultTerm = new OrTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
+                    replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
                 }
             } catch (Exception ex) {
                 if (item.contains(spaceCharReplacement)) {
@@ -58,11 +62,19 @@ class SearchCommandParser extends CommandParser {
             }
         }
 
-        if (fullSearch.size() == 2) {
-            resultTerm = new AndTerm(fullSearch.get(0), fullSearch.get(1));
+        // default of two subjects is AND term
+        if (multipleSearchTerms.size() == 2 && searchRequestString.startsWith("SUBJECT")) {
+            resultTerm = new AndTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
+            replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
         }
 
-        return resultTerm;
+        return multipleSearchTerms.get(0);
+    }
+
+    private void replaceDouWithSingleTerm(SearchTerm resultTerm, ArrayList<SearchTerm> fullSearch) {
+        fullSearch.remove(1);
+        fullSearch.remove(0);
+        fullSearch.add(resultTerm);
     }
 
     private ArrayList<String> stringToTermsList(String searchRequestString) {
