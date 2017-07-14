@@ -126,19 +126,20 @@ public class ImapSearchTest {
         assertTrue(imapMessages.length == 1);
         assertTrue(imapMessages[0] == m1);
     }
-//
-//
-//
-//    @Test
-//    public void testSearchTo() throws MessagingException {
-//        imapMessages = imapFolder.search(new RecipientTerm(Message.RecipientType.TO, new InternetAddress("to2@localhost")));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m0);
-//
-//        imapMessages = imapFolder.search(new RecipientTerm(Message.RecipientType.TO, new InternetAddress("to3@localhost")));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m1);
-//    }
+
+
+
+    @Test
+    public void testSearchTo() throws MessagingException {
+        imapMessages = imapFolder.search(new RecipientTerm(Message.RecipientType.TO, new InternetAddress("to1@localhost")));
+        assertTrue(imapMessages.length == 2);
+        assertTrue(imapMessages[0] == m0);
+        assertTrue(imapMessages[1] == m1);
+
+        imapMessages = imapFolder.search(new RecipientTerm(Message.RecipientType.TO, new InternetAddress("to3@localhost")));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m1);
+    }
 //
 //    @Test
 //    public void testSearchFrom() throws MessagingException {

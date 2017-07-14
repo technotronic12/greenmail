@@ -11,10 +11,9 @@ import com.icegreen.greenmail.imap.ProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.search.AndTerm;
-import javax.mail.search.OrTerm;
-import javax.mail.search.SearchTerm;
-import javax.mail.search.SubjectTerm;
+import javax.mail.Message;
+import javax.mail.internet.InternetAddress;
+import javax.mail.search.*;
 import java.nio.charset.CharacterCodingException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -55,6 +54,9 @@ class SearchCommandParser extends CommandParser {
                 } else if (key == SearchKey.OR) {
                     resultTerm = new OrTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
                     replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
+                } else if (key == SearchKey.TO) {
+                    resultTerm = new RecipientTerm(Message.RecipientType.TO, new InternetAddress(valuesStack.pop()));
+                    multipleSearchTerms.add(resultTerm);
                 }
             } catch (Exception ex) {
                 if (item.contains(spaceCharReplacement)) {
@@ -76,10 +78,10 @@ class SearchCommandParser extends CommandParser {
         return searchString.replaceAll("\\(|\\)", "");
     }
 
-    private void replaceDouWithSingleTerm(SearchTerm resultTerm, ArrayList<SearchTerm> fullSearch) {
-        fullSearch.remove(1);
-        fullSearch.remove(0);
-        fullSearch.add(resultTerm);
+    private void replaceDouWithSingleTerm(SearchTerm resultTerm, ArrayList<SearchTerm> multipleSearchTerms) {
+        multipleSearchTerms.remove(1);
+        multipleSearchTerms.remove(0);
+        multipleSearchTerms.add(resultTerm);
     }
 
     private ArrayList<String> stringToTermsList(String searchRequestString) {
