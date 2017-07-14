@@ -40,7 +40,9 @@ class SearchCommandParser extends CommandParser {
 
         String searchRequestString = getFullSearchRequest(request);
         searchRequestString = removeQuotesAndSpace(searchRequestString);
+        searchRequestString = removeParenthesesIfPresent(searchRequestString);
         ArrayList<String> searchWords = stringToTermsList(searchRequestString);
+        removeAllSearchTermIfOtherSearchPresent(searchWords);
         ArrayList<SearchTerm> multipleSearchTerms = new ArrayList<>();
 
         for (String item : searchWords) {
@@ -62,13 +64,16 @@ class SearchCommandParser extends CommandParser {
             }
         }
 
-        // default of two subjects is AND term
-        if (multipleSearchTerms.size() == 2 && searchRequestString.startsWith("SUBJECT")) {
+        if (multipleSearchTerms.size() == 2) {
             resultTerm = new AndTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
             replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
         }
 
         return multipleSearchTerms.get(0);
+    }
+
+    private String removeParenthesesIfPresent(String searchString) {
+        return searchString.replaceAll("\\(|\\)", "");
     }
 
     private void replaceDouWithSingleTerm(SearchTerm resultTerm, ArrayList<SearchTerm> fullSearch) {
@@ -80,7 +85,6 @@ class SearchCommandParser extends CommandParser {
     private ArrayList<String> stringToTermsList(String searchRequestString) {
         ArrayList<String> itemList = new ArrayList<>(Arrays.asList(searchRequestString.trim().split("\\s")));
         Collections.reverse(itemList);
-        removeAllSearchTermIfOtherSearchPresent(itemList);
         return itemList;
     }
 
