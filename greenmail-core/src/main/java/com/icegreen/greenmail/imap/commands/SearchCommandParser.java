@@ -11,6 +11,7 @@ import com.icegreen.greenmail.imap.ProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.mail.search.AndTerm;
 import javax.mail.search.SearchTerm;
 import javax.mail.search.SubjectTerm;
 import java.nio.charset.CharacterCodingException;
@@ -39,7 +40,7 @@ class SearchCommandParser extends CommandParser {
         String searchRequestString = getFullSearchRequest(request);
         searchRequestString = removeQuotesAndSpace(searchRequestString);
         ArrayList<String> searchTerms = stringToTermsList(searchRequestString);
-
+        ArrayList<SearchTerm> fullSearch = new ArrayList<>();
 
         for (String item : searchTerms) {
             try {
@@ -47,6 +48,7 @@ class SearchCommandParser extends CommandParser {
 
                 if (key == SearchKey.SUBJECT) {
                     resultTerm = new SubjectTerm(valuesStack.pop());
+                    fullSearch.add(resultTerm);
                 }
             } catch (Exception ex) {
                 if (item.contains(spaceCharReplacement)) {
@@ -54,6 +56,10 @@ class SearchCommandParser extends CommandParser {
                 }
                 valuesStack.push(item);
             }
+        }
+
+        if (fullSearch.size() == 2) {
+            resultTerm = new AndTerm(fullSearch.get(0), fullSearch.get(1));
         }
 
         return resultTerm;
