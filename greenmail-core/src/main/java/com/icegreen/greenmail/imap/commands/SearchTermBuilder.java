@@ -9,7 +9,6 @@ import javax.mail.Message;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.search.*;
-import javax.mail.search.RecipientStringTerm;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
  */
 public abstract class SearchTermBuilder {
     private SearchKey key;
-    private List<String> parameters = Collections.<String>emptyList();
+    private List<Object> parameters = Collections.emptyList();
 
     public static SearchTermBuilder create(final String pTerm) {
         return create(SearchKey.valueOf(pTerm));
@@ -60,9 +59,8 @@ public abstract class SearchTermBuilder {
                 builder = createFromSearchTermBuilder();
                 break;
             case NEW:
-                builder = createSearchTermBuilder(
-                        new AndTerm(createFlagSearchTerm("RECENT", true), createFlagSearchTerm("SEEN", false))
-                );
+                builder = createSearchTermBuilder(new AndTerm(createFlagSearchTerm("RECENT", true),
+                        createFlagSearchTerm("SEEN", false)));
                 break;
             case OLD:
                 builder = createSearchTermBuilder(createFlagSearchTerm("RECENT", false));
@@ -116,15 +114,16 @@ public abstract class SearchTermBuilder {
         builder.setSearchKey(key);
         return builder;
     }
-    
-	private static SearchTermBuilder createORTermBuilder() {
-			 return new SearchTermBuilder() {
-	            @Override
-	            public SearchTerm build() {
-                return new OrTerm(new SubjectTerm(getParameters().get(0)),new SubjectTerm(getParameters().get(1)));
-	            }
-	        };	}
-    
+
+    private static SearchTermBuilder createORTermBuilder() {
+        return new SearchTermBuilder() {
+            @Override
+            public SearchTerm build() {
+                return new OrTerm((SearchTerm) getParameters().get(0), (SearchTerm) getParameters().get(1));
+            }
+        };
+    }
+
     private void setSearchKey(final SearchKey pKey) {
         key = pKey;
     }
@@ -133,24 +132,24 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                return new HeaderTerm(getParameters().get(0), getParameters().get(1));
+                return new HeaderTerm(getParameters().get(0).toString(), getParameters().get(1).toString());
             }
         };
     }
 
-    SearchTermBuilder addParameter(final String pParameter) {
-        if (Collections.<String>emptyList() == parameters) {
+    SearchTermBuilder addParameter(final Object pParameter) {
+        if (Collections.emptyList() == parameters) {
             parameters = new ArrayList<>();
         }
         parameters.add(pParameter);
         return this;
     }
 
-    public List<String> getParameters() {
+    public List<Object> getParameters() {
         return parameters;
     }
 
-    public String getParameter(final int pIdx) {
+    public Object getParameter(final int pIdx) {
         return getParameters().get(pIdx);
     }
 
@@ -178,7 +177,7 @@ public abstract class SearchTermBuilder {
             @Override
             public SearchTerm build() {
                 try {
-                    return new RecipientTerm(type, new InternetAddress(getParameters().get(0)));
+                    return new RecipientTerm(type, new InternetAddress(getParameters().get(0).toString()));
                 } catch (AddressException e) {
                     throw new IllegalArgumentException("Address is not correct", e);
                 }
@@ -190,14 +189,14 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                String query = getParameters().get(0);
+                String query = getParameters().get(0).toString();
                 SearchTerm[] terms = {
-                  new RecipientStringTerm(Message.RecipientType.TO, query),
-                  new RecipientStringTerm(Message.RecipientType.CC, query),
-                  new RecipientStringTerm(Message.RecipientType.BCC, query),
-                  new FromStringTerm(query),
-                  new SubjectTerm(query),
-                  new BodyTerm(query)
+                        new RecipientStringTerm(Message.RecipientType.TO, query),
+                        new RecipientStringTerm(Message.RecipientType.CC, query),
+                        new RecipientStringTerm(Message.RecipientType.BCC, query),
+                        new FromStringTerm(query),
+                        new SubjectTerm(query),
+                        new BodyTerm(query)
                 };
                 return new OrTerm(terms);
             }
@@ -209,7 +208,7 @@ public abstract class SearchTermBuilder {
             @Override
             public SearchTerm build() {
                 try {
-                    return new FromTerm(new InternetAddress(getParameters().get(0)));
+                    return new FromTerm(new InternetAddress(getParameters().get(0).toString()));
                 } catch (AddressException e) {
                     throw new IllegalArgumentException("Address is not correct", e);
                 }
@@ -221,7 +220,7 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                return new SubjectTerm(getParameters().get(0));
+                return new SubjectTerm(getParameters().get(0).toString());
             }
         };
     }
@@ -239,7 +238,7 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                return createFlagSearchTerm(getParameter(0), pKey == SearchKey.KEYWORD);
+                return createFlagSearchTerm(getParameter(0).toString(), pKey == SearchKey.KEYWORD);
             }
         };
     }
@@ -259,7 +258,7 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                final List<IdRange> uidSetList = IdRange.parseRangeSequence(getParameter(0));
+                final List<IdRange> uidSetList = IdRange.parseRangeSequence(getParameter(0).toString());
                 return new UidSearchTerm(uidSetList);
             }
         };
@@ -269,7 +268,7 @@ public abstract class SearchTermBuilder {
         return new SearchTermBuilder() {
             @Override
             public SearchTerm build() {
-                final List<IdRange> idRanges = IdRange.parseRangeSequence(getParameter(0));
+                final List<IdRange> idRanges = IdRange.parseRangeSequence(getParameter(0).toString());
                 return new MessageNumberSearchTerm(idRanges);
             }
         };
@@ -323,7 +322,7 @@ public abstract class SearchTermBuilder {
 
     /**
      * Supports general searching by id sequences such as MSN or UID.
-     *
+     * <p>
      * Note:
      * Not very efficient due to underlying JavaMail based impl.
      * The term compares each mail if matching.

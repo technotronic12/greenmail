@@ -127,8 +127,6 @@ public class ImapSearchTest {
         assertTrue(imapMessages[0] == m1);
     }
 
-
-
     @Test
     public void testSearchTo() throws MessagingException {
         imapMessages = imapFolder.search(new RecipientTerm(Message.RecipientType.TO, new InternetAddress("to1@localhost")));
@@ -140,68 +138,68 @@ public class ImapSearchTest {
         assertTrue(imapMessages.length == 1);
         assertTrue(imapMessages[0] == m1);
     }
-//
-//    @Test
-//    public void testSearchFrom() throws MessagingException {
-//        imapMessages = imapFolder.search(new FromTerm(new InternetAddress("from2@localhost")));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m0);
-//
-//        imapMessages = imapFolder.search(new FromTerm(new InternetAddress("from3@localhost")));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m1);
-//    }
-//
-//    @Test
-//    public void testFlags() throws Exception {
-//        imapMessages = imapFolder.search(new FlagTerm(new Flags(Flags.Flag.ANSWERED), true));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m0);
-//
-//        imapMessages = imapFolder.search(new FlagTerm(fooFlags, true));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0].getFlags().contains("foo"));
-//
-//        imapMessages = imapFolder.search(new FlagTerm(fooFlags, false));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(!imapMessages[0].getFlags().contains(fooFlags));
-//    }
-//
-//    @Test
-//    public void testHeaderMessageId() throws Exception {
-//        String id = m0.getHeader("Message-ID")[0];
-//        imapMessages = imapFolder.search(new HeaderTerm("Message-ID", id));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m0);
-//
-//        id = m1.getHeader("Message-ID")[0];
-//        imapMessages = imapFolder.search(new HeaderTerm("Message-ID", id));
-//        assertTrue(imapMessages.length == 1);
-//        assertTrue(imapMessages[0] == m1);
-//    }
-//
-//    // Test an unsupported search term for exception. Should be ignored.
-//    @Test
-//    public void testUnsupportedSearchWarnsButDoesNotThrowException() throws MessagingException {
-//        try {
-//            SearchKey.valueOf("SENTDATE");
-//            fail("Expected IAE for unimplemented search");
-//        } catch (IllegalArgumentException ex) {
-//            // Expected
-//        }
-//
-//        greenMail.setUser("to1@localhost", "pwd"); // Create user
-//
-//        final Store store = greenMail.getImap().createStore();
-//        store.connect("to1@localhost", "pwd");
-//        try {
-//            Folder imapFolder = store.getFolder("INBOX");
-//            imapFolder.open(Folder.READ_WRITE);
-//            imapFolder.search(new SentDateTerm(ComparisonTerm.LT, new Date()));
-//        } finally {
-//            store.close();
-//        }
-//    }
+
+    @Test
+    public void testSearchFrom() throws MessagingException {
+        imapMessages = imapFolder.search(new FromTerm(new InternetAddress("from2@localhost")));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m0);
+
+        imapMessages = imapFolder.search(new FromTerm(new InternetAddress("from3@localhost")));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m1);
+    }
+
+    @Test
+    public void testFlags() throws Exception {
+        imapMessages = imapFolder.search(new FlagTerm(new Flags(Flags.Flag.ANSWERED), true));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m0);
+
+        imapMessages = imapFolder.search(new FlagTerm(fooFlags, true));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0].getFlags().contains("foo"));
+
+        imapMessages = imapFolder.search(new FlagTerm(fooFlags, false));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(!imapMessages[0].getFlags().contains(fooFlags));
+    }
+
+    @Test
+    public void testHeaderMessageId() throws Exception {
+        String id = m0.getHeader("Message-ID")[0];
+        imapMessages = imapFolder.search(new HeaderTerm("Message-ID", id));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m0);
+
+        id = m1.getHeader("Message-ID")[0];
+        imapMessages = imapFolder.search(new HeaderTerm("Message-ID", id));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m1);
+    }
+
+    // Test an unsupported search term for exception. Should be ignored.
+    @Test
+    public void testUnsupportedSearchWarnsButDoesNotThrowException() throws MessagingException {
+        try {
+            SearchKey.valueOf("SENTDATE");
+            fail("Expected IAE for unimplemented search");
+        } catch (IllegalArgumentException ex) {
+            // Expected
+        }
+
+        greenMail.setUser("to1@localhost", "pwd"); // Create user
+
+        final Store store = greenMail.getImap().createStore();
+        store.connect("to1@localhost", "pwd");
+        try {
+            Folder imapFolder = store.getFolder("INBOX");
+            imapFolder.open(Folder.READ_WRITE);
+            imapFolder.search(new SentDateTerm(ComparisonTerm.LT, new Date()));
+        } finally {
+            store.close();
+        }
+    }
 
     /**
      * Create the two messages with different recipients, etc. for testing and add them to the folder.

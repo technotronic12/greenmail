@@ -10,10 +10,8 @@ import com.icegreen.greenmail.imap.ImapRequestLineReader;
 import com.icegreen.greenmail.imap.ProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.mail.Message;
-import javax.mail.internet.InternetAddress;
-import javax.mail.search.*;
+import javax.mail.search.AndTerm;
+import javax.mail.search.SearchTerm;
 import java.nio.charset.CharacterCodingException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -21,67 +19,83 @@ import java.util.regex.Pattern;
 
 /**
  * Handles processing for the SEARCH imap command.
+ *
  * @author Eli Pony <elipony@outlook.com>
  */
 class SearchCommandParser extends CommandParser {
     private final Logger log = LoggerFactory.getLogger(SearchCommandParser.class);
     private final String spaceCharReplacement = "_SPACE_CHAR_REPLACEMENT_";
-    private static final String CHARSET_TOKEN = "CHARSET";
 
     /**
      * Parses the request argument into a valid search term. Not yet fully implemented - see SearchKey enum.
      * <p>
      * Other searches will return everything for now.
+     * </p>
      */
     public SearchTerm searchTerm(ImapRequestLineReader request) throws ProtocolException, CharacterCodingException {
-        SearchTerm resultTerm;
-        Stack<String> valuesStack = new Stack<>();
-
         String searchRequestString = getFullSearchRequest(request);
+        return getSearchTerms(searchRequestString);
+    }
+
+    private SearchTerm getSearchTerms(String searchRequestString) {
+        SearchTerm resultTerm;
+        Stack<Object> valuesStack = new Stack<>();
+        SearchTermBuilder searchTermBuilder;
+        int numOfSubsequentSubjectTerms = 0;
+        int parsedCommandIndex = 0;
+
         searchRequestString = removeQuotesAndSpace(searchRequestString);
         searchRequestString = removeParenthesesIfPresent(searchRequestString);
         ArrayList<String> searchWords = stringToTermsList(searchRequestString);
-        removeAllSearchTermIfOtherSearchPresent(searchWords);
-        ArrayList<SearchTerm> multipleSearchTerms = new ArrayList<>();
 
         for (String item : searchWords) {
             try {
                 SearchKey key = SearchKey.valueOf(item);
 
                 if (key == SearchKey.SUBJECT) {
-                    resultTerm = new SubjectTerm(valuesStack.pop());
-                    multipleSearchTerms.add(resultTerm);
-                } else if (key == SearchKey.OR) {
-                    resultTerm = new OrTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
-                    replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
-                } else if (key == SearchKey.TO) {
-                    resultTerm = new RecipientTerm(Message.RecipientType.TO, new InternetAddress(valuesStack.pop()));
-                    multipleSearchTerms.add(resultTerm);
+                    numOfSubsequentSubjectTerms++;
                 }
+                searchTermBuilder = SearchTermBuilder.create(key);
+                int numOfParams = key.getNumberOfParameters();
+
+                for (int i = 0; i < numOfParams; i++) {
+                    searchTermBuilder.addParameter(valuesStack.pop());
+                }
+
+                if (!searchTermBuilder.expectsParameter()) {
+                    resultTerm = searchTermBuilder.build();
+                    valuesStack.push(resultTerm);
+                }
+
+                if (numOfSubsequentSubjectTerms == 3) {
+                    resultTerm = new AndTerm((SearchTerm) valuesStack.pop(), (SearchTerm) valuesStack.pop());
+                    valuesStack.push(resultTerm);
+                    numOfSubsequentSubjectTerms = 1;
+                }
+
             } catch (Exception ex) {
                 if (item.contains(spaceCharReplacement)) {
                     item = item.replaceAll(spaceCharReplacement, " ");
                 }
                 valuesStack.push(item);
+                parsedCommandIndex++;
             }
         }
 
-        if (multipleSearchTerms.size() == 2) {
-            resultTerm = new AndTerm(multipleSearchTerms.get(0), multipleSearchTerms.get(1));
-            replaceDouWithSingleTerm(resultTerm, multipleSearchTerms);
+        // either create AND term or consume bad commands until ALL command
+        while (valuesStack.size() != 1) {
+            try {
+                valuesStack.push(new AndTerm((SearchTerm) valuesStack.pop(), (SearchTerm) valuesStack.pop()));
+            } catch (Exception ex) {
+                log.warn("Ignoring not yet implemented command " + "'" + searchWords.get(parsedCommandIndex) + "'", ex);
+            }
         }
 
-        return multipleSearchTerms.get(0);
+        return (SearchTerm) valuesStack.pop();
     }
 
     private String removeParenthesesIfPresent(String searchString) {
         return searchString.replaceAll("\\(|\\)", "");
-    }
-
-    private void replaceDouWithSingleTerm(SearchTerm resultTerm, ArrayList<SearchTerm> multipleSearchTerms) {
-        multipleSearchTerms.remove(1);
-        multipleSearchTerms.remove(0);
-        multipleSearchTerms.add(resultTerm);
     }
 
     private ArrayList<String> stringToTermsList(String searchRequestString) {
@@ -102,13 +116,6 @@ class SearchCommandParser extends CommandParser {
         }
 
         return searchRequestString;
-    }
-
-    private void removeAllSearchTermIfOtherSearchPresent(List<String> operators) {
-        String possibleAll = operators.get(0);
-        if (possibleAll.equals("ALL")) {
-            operators.remove(0);
-        }
     }
 
     private String getFullSearchRequest(ImapRequestLineReader request) throws ProtocolException {
