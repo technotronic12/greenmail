@@ -5,6 +5,7 @@
 package com.icegreen.greenmail.test.commands;
 
 import com.icegreen.greenmail.imap.commands.SearchKey;
+import com.icegreen.greenmail.imap.commands.SearchTermBuilder;
 import com.icegreen.greenmail.junit.GreenMailRule;
 import com.icegreen.greenmail.store.MailFolder;
 import com.icegreen.greenmail.user.GreenMailUser;
@@ -18,6 +19,7 @@ import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.search.*;
+
 import java.util.Date;
 
 import static org.junit.Assert.assertTrue;
@@ -206,6 +208,35 @@ public class ImapSearchTest {
         imapMessages = imapFolder.search(new NotTerm(new SubjectTerm("test1Search")));
         assertTrue(imapMessages.length == 1);
         assertTrue(imapMessages[0] == m0);
+    }
+
+    @Test
+    public void testSingleMessageSequenceSearch() throws MessagingException {
+        imapMessages = searchSequenceMessages("10");
+        assertTrue(imapMessages.length == 0);
+    }
+
+    @Test
+    public void testSequenceSearch() throws MessagingException {
+        imapMessages = searchSequenceMessages("0:1");
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m0);
+    }
+
+    @Test
+    public void testFullSequenceSearch() throws MessagingException {
+        imapMessages = searchSequenceMessages("0:200");
+        assertTrue(imapMessages.length == 2);
+        assertTrue(imapMessages[0] == m0);
+        assertTrue(imapMessages[1] == m1);
+    }
+
+    private Message[] searchSequenceMessages(String sequence) throws MessagingException {
+        SearchTermBuilder sequenceBuilder = SearchTermBuilder.create(SearchKey.SEQUENCE_SET);
+        sequenceBuilder.addParameter(sequence);
+        SearchTerm sequenceTerm = sequenceBuilder.build();
+
+        return imapFolder.search(sequenceTerm);
     }
 
     /**

@@ -137,7 +137,7 @@ public abstract class SearchTermBuilder {
         };
     }
 
-    SearchTermBuilder addParameter(final Object pParameter) {
+    public SearchTermBuilder addParameter(final Object pParameter) {
         if (Collections.emptyList() == parameters) {
             parameters = new ArrayList<>();
         }
