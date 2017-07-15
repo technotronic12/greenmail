@@ -201,6 +201,13 @@ public class ImapSearchTest {
         }
     }
 
+    @Test
+    public void testNotTerm() throws MessagingException {
+        imapMessages = imapFolder.search(new NotTerm(new SubjectTerm("test1Search")));
+        assertTrue(imapMessages.length == 1);
+        assertTrue(imapMessages[0] == m0);
+    }
+
     /**
      * Create the two messages with different recipients, etc. for testing and add them to the folder.
      *

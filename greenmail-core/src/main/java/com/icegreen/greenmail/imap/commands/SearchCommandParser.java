@@ -11,9 +11,13 @@ import com.icegreen.greenmail.imap.ProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.mail.search.AndTerm;
+import javax.mail.search.NotTerm;
 import javax.mail.search.SearchTerm;
 import java.nio.charset.CharacterCodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,16 +59,28 @@ class SearchCommandParser extends CommandParser {
                 if (key == SearchKey.SUBJECT) {
                     numOfSubsequentSubjectTerms++;
                 }
-                searchTermBuilder = SearchTermBuilder.create(key);
-                int numOfParams = key.getNumberOfParameters();
 
-                for (int i = 0; i < numOfParams; i++) {
-                    searchTermBuilder.addParameter(valuesStack.pop());
-                }
+                if (key == SearchKey.NOT) {
+                    SearchTerm term = (SearchTerm) valuesStack.pop();
 
-                if (!searchTermBuilder.expectsParameter()) {
-                    resultTerm = searchTermBuilder.build();
+                    if (valuesStack.peek() instanceof SearchTerm) {
+                        term = new AndTerm(term, (SearchTerm) valuesStack.pop());
+                    }
+                    resultTerm = new NotTerm(term);
                     valuesStack.push(resultTerm);
+
+                } else {
+                    searchTermBuilder = SearchTermBuilder.create(key);
+                    int numOfParams = key.getNumberOfParameters();
+
+                    for (int i = 0; i < numOfParams; i++) {
+                        searchTermBuilder.addParameter(valuesStack.pop());
+                    }
+
+                    if (!searchTermBuilder.expectsParameter()) {
+                        resultTerm = searchTermBuilder.build();
+                        valuesStack.push(resultTerm);
+                    }
                 }
 
                 if (numOfSubsequentSubjectTerms == 3) {
